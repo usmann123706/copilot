@@ -56,7 +56,7 @@ def generate_report(start_date: str, end_date: str):
     plt.close(fig)
 
     # Construct full public URL
-    render_base_url = "https://your-app-name.onrender.com"  # Replace with your real Render app URL
+    render_base_url = "https://copilot-vye7.onrender.com"  # Replace with your real Render app URL
     chart_url = f"{render_base_url}/charts/{filename}"
 
     return {
