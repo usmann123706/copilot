@@ -1,15 +1,21 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from typing import Optional
 from datetime import datetime
 import matplotlib.pyplot as plt
-from io import BytesIO
-import base64
+import os
 import pandas as pd
 
 app = FastAPI()
 
-# Hardcoded sample data
+# Mount static directory for serving charts
+app.mount("/charts", StaticFiles(directory="static/charts"), name="charts")
+
+# Ensure charts directory exists
+os.makedirs("static/charts", exist_ok=True)
+
+# Sample data
 data = [
     {"date": "2025-05-01", "category": "Sales", "amount": 1200},
     {"date": "2025-05-02", "category": "Sales", "amount": 1100},
@@ -31,15 +37,11 @@ def generate_report(start_date: str, end_date: str):
     except ValueError:
         return JSONResponse(status_code=400, content={"error": "Invalid date format. Use YYYY-MM-DD."})
 
-    # Filter data
     filtered = df[(df["date"] >= start) & (df["date"] <= end)]
     if filtered.empty:
         return {"report": "No data available for the given date range."}
 
-    # Aggregate summary
     summary = filtered.groupby("category")["amount"].sum().to_dict()
-
-    # Generate text report
     report_text = "\n".join([f"{k}: ${v}" for k, v in summary.items()])
 
     # Generate pie chart
@@ -47,14 +49,17 @@ def generate_report(start_date: str, end_date: str):
     ax.pie(summary.values(), labels=summary.keys(), autopct='%1.1f%%')
     ax.set_title("Category Breakdown")
 
-    buffer = BytesIO()
-    plt.savefig(buffer, format="png")
+    # Save chart to static/charts/
+    filename = f"chart_{start_date}_to_{end_date}.png".replace(":", "-")
+    filepath = os.path.join("static/charts", filename)
+    plt.savefig(filepath, format="png")
     plt.close(fig)
-    buffer.seek(0)
 
-    chart_base64 = base64.b64encode(buffer.read()).decode("utf-8")
+    # Construct full public URL
+    render_base_url = "https://your-app-name.onrender.com"  # Replace with your real Render app URL
+    chart_url = f"{render_base_url}/charts/{filename}"
 
     return {
         "report": report_text,
-        "chart_base64": chart_base64
+        "chart_url": chart_url
     }
