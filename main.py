@@ -9,13 +9,9 @@ import pandas as pd
 import io
 from dotenv import load_dotenv
 from openai import OpenAI
+from anthropic import Anthropic
 
-# Load environment variables
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-
-# Initialize OpenAI client
-client = OpenAI(api_key=api_key)
+client = Anthropic(api_key="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")
 
 app = FastAPI()
 
@@ -62,19 +58,13 @@ Data:
 {csv_text}
 """
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful data analysis assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=300,
-            temperature=0.3
-        )
-        report_text = response.choices[0].message.content
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": f"OpenAI error: {str(e)}"})
+response = client.messages.create(
+    model="claude-3-sonnet-20240229",
+    max_tokens=300,
+    messages=[
+        {"role": "user", "content": "Summarize this CSV data..."}
+    ]
+)
 
     # Create chart
     summary = filtered.groupby("category")["amount"].sum().to_dict()
