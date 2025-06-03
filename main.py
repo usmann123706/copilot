@@ -13,7 +13,7 @@ import io
 app = FastAPI()
 
 # Hardcoded OpenAI API Key (replace with your actual key)
-client = OpenAI(api_key="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")
+client = OpenAI(api_key="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")
 
 # Mount static directory for serving charts
 app.mount("/charts", StaticFiles(directory="static/charts"), name="charts")
