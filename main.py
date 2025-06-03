@@ -7,12 +7,13 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import openai
+from openai import OpenAI
 import io
 
 app = FastAPI()
 
 # Hardcoded OpenAI API Key (replace with your actual key)
-openai.api_key = "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"
+client = OpenAI(api_key="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")
 
 # Mount static directory for serving charts
 app.mount("/charts", StaticFiles(directory="static/charts"), name="charts")
@@ -70,7 +71,7 @@ def generate_report(start_date: str, end_date: str, question: Optional[str] = "G
     temperature=0.3
     )
 
-report_text = response.choices[0].message.content
+    report_text = response.choices[0].message.content
 
     # Generate pie chart
     summary = filtered.groupby("category")["amount"].sum().to_dict()
