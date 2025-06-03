@@ -11,7 +11,9 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from anthropic import Anthropic
 
-client = Anthropic(api_key="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")
+
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key)
 
 app = FastAPI()
 
