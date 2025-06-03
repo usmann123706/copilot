@@ -8,12 +8,12 @@ import os
 import pandas as pd
 import io
 from dotenv import load_dotenv
-from openai import OpenAI
 from anthropic import Anthropic
 
-
-api_key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=api_key)
+# Load environment variables
+load_dotenv()
+anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+client = Anthropic(api_key=anthropic_key)
 
 app = FastAPI()
 
@@ -52,7 +52,7 @@ def generate_report(start_date: str, end_date: str, question: Optional[str] = "G
     filtered.to_csv(csv_buffer, index=False)
     csv_text = csv_buffer.getvalue()
 
-    # OpenAI prompt
+    # Construct prompt
     prompt = f"""You are a data analyst. Based on the following sales data in CSV format, answer the question below:
 
 Question: {question}
@@ -60,29 +60,32 @@ Data:
 {csv_text}
 """
 
-response = client.messages.create(
-    model="claude-3-sonnet-20240229",
-    max_tokens=300,
-    messages=[
-        {"role": "user", "content": "Summarize this CSV data..."}
-    ]
-)
+    # Anthropic Claude API call
+    response = client.messages.create(
+        model="claude-3-sonnet-20240229",
+        max_tokens=300,
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
 
-# Create chart
-summary = filtered.groupby("category")["amount"].sum().to_dict()
-fig, ax = plt.subplots()
-ax.pie(summary.values(), labels=summary.keys(), autopct='%1.1f%%')
-ax.set_title("Category Breakdown")
+    report_text = response.content[0].text
 
-filename = f"chart_{start_date}_to_{end_date}.png".replace(":", "-")
-filepath = os.path.join("static/charts", filename)
-plt.savefig(filepath, format="png")
-plt.close(fig)
+    # Create pie chart
+    summary = filtered.groupby("category")["amount"].sum().to_dict()
+    fig, ax = plt.subplots()
+    ax.pie(summary.values(), labels=summary.keys(), autopct='%1.1f%%')
+    ax.set_title("Category Breakdown")
 
-render_base_url = "https://copilot-vye7.onrender.com"  # Update as needed
-chart_url = f"{render_base_url}/charts/{filename}"
+    filename = f"chart_{start_date}_to_{end_date}.png".replace(":", "-")
+    filepath = os.path.join("static/charts", filename)
+    plt.savefig(filepath, format="png")
+    plt.close(fig)
 
-return {
-    "report": report_text,
-    "chart_url": chart_url
-}
+    render_base_url = "https://copilot-vye7.onrender.com"  # Update to your actual base URL
+    chart_url = f"{render_base_url}/charts/{filename}"
+
+    return {
+        "report": report_text,
+        "chart_url": chart_url
+    }
