@@ -6,8 +6,13 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
+import openai
+import io
 
 app = FastAPI()
+
+# Hardcoded OpenAI API Key (replace with your actual key)
+openai.api_key = "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"
 
 # Mount static directory for serving charts
 app.mount("/charts", StaticFiles(directory="static/charts"), name="charts")
@@ -30,7 +35,7 @@ df = pd.DataFrame(data)
 df["date"] = pd.to_datetime(df["date"])
 
 @app.post("/report")
-def generate_report(start_date: str, end_date: str):
+def generate_report(start_date: str, end_date: str, question: Optional[str] = "Give a summary report"):
     try:
         start = datetime.strptime(start_date, "%Y-%m-%d")
         end = datetime.strptime(end_date, "%Y-%m-%d")
@@ -41,10 +46,36 @@ def generate_report(start_date: str, end_date: str):
     if filtered.empty:
         return {"report": "No data available for the given date range."}
 
-    summary = filtered.groupby("category")["amount"].sum().to_dict()
-    report_text = "\n".join([f"{k}: ${v}" for k, v in summary.items()])
+    # Convert filtered DataFrame to CSV in memory
+    csv_buffer = io.StringIO()
+    filtered.to_csv(csv_buffer, index=False)
+    csv_text = csv_buffer.getvalue()
+
+    # Create prompt for OpenAI
+    prompt = f"""You are a data analyst. Based on the following sales data in CSV format, answer the question below:
+
+    Question: {question}
+    Data:
+    {csv_text}
+    """
+
+    # Ask OpenAI to generate the report
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",  # or "gpt-3.5-turbo"
+            messages=[
+                {"role": "system", "content": "You are a helpful data analysis assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=300,
+            temperature=0.3
+        )
+        report_text = response["choices"][0]["message"]["content"]
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"OpenAI error: {str(e)}"})
 
     # Generate pie chart
+    summary = filtered.groupby("category")["amount"].sum().to_dict()
     fig, ax = plt.subplots()
     ax.pie(summary.values(), labels=summary.keys(), autopct='%1.1f%%')
     ax.set_title("Category Breakdown")
@@ -55,8 +86,8 @@ def generate_report(start_date: str, end_date: str):
     plt.savefig(filepath, format="png")
     plt.close(fig)
 
-    # Construct full public URL
-    render_base_url = "https://copilot-vye7.onrender.com"  # Replace with your real Render app URL
+    # Construct chart URL
+    render_base_url = "https://copilot-vye7.onrender.com"  # Replace with your actual base URL
     chart_url = f"{render_base_url}/charts/{filename}"
 
     return {
