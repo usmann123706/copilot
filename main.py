@@ -64,7 +64,7 @@ Data:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful data analysis assistant."},
                 {"role": "user", "content": prompt}
