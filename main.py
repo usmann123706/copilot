@@ -68,21 +68,21 @@ response = client.messages.create(
     ]
 )
 
-    # Create chart
-    summary = filtered.groupby("category")["amount"].sum().to_dict()
-    fig, ax = plt.subplots()
-    ax.pie(summary.values(), labels=summary.keys(), autopct='%1.1f%%')
-    ax.set_title("Category Breakdown")
+# Create chart
+summary = filtered.groupby("category")["amount"].sum().to_dict()
+fig, ax = plt.subplots()
+ax.pie(summary.values(), labels=summary.keys(), autopct='%1.1f%%')
+ax.set_title("Category Breakdown")
 
-    filename = f"chart_{start_date}_to_{end_date}.png".replace(":", "-")
-    filepath = os.path.join("static/charts", filename)
-    plt.savefig(filepath, format="png")
-    plt.close(fig)
+filename = f"chart_{start_date}_to_{end_date}.png".replace(":", "-")
+filepath = os.path.join("static/charts", filename)
+plt.savefig(filepath, format="png")
+plt.close(fig)
 
-    render_base_url = "https://copilot-vye7.onrender.com"  # Update as needed
-    chart_url = f"{render_base_url}/charts/{filename}"
+render_base_url = "https://copilot-vye7.onrender.com"  # Update as needed
+chart_url = f"{render_base_url}/charts/{filename}"
 
-    return {
-        "report": report_text,
-        "chart_url": chart_url
-    }
+return {
+    "report": report_text,
+    "chart_url": chart_url
+}
