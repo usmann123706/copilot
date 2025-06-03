@@ -60,19 +60,17 @@ def generate_report(start_date: str, end_date: str, question: Optional[str] = "G
     """
 
     # Ask OpenAI to generate the report
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",  # or "gpt-3.5-turbo"
-            messages=[
-                {"role": "system", "content": "You are a helpful data analysis assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=300,
-            temperature=0.3
-        )
-        report_text = response["choices"][0]["message"]["content"]
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": f"OpenAI error: {str(e)}"})
+    response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "system", "content": "You are a helpful data analysis assistant."},
+        {"role": "user", "content": prompt}
+    ],
+    max_tokens=300,
+    temperature=0.3
+    )
+
+report_text = response.choices[0].message.content
 
     # Generate pie chart
     summary = filtered.groupby("category")["amount"].sum().to_dict()
