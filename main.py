@@ -8,11 +8,13 @@ import os
 import pandas as pd
 import io
 from dotenv import load_dotenv
-from anthropic import Anthropic
+import anthropic
 
 # Load environment variables
 load_dotenv()
-client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+client = anthropic.Anthropic(
+    os.environ.get("ANTHROPIC_API_KEY")
+)
 
 app = FastAPI()
 
@@ -61,7 +63,7 @@ Data:
 
     # Anthropic Claude API call
     response = client.messages.create(
-        model="claude-3-sonnet-20240229",
+        model="claude-opus-4-20250514",
         max_tokens=300,
         messages=[
             {"role": "user", "content": prompt}
