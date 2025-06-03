@@ -12,9 +12,7 @@ import anthropic
 
 # Load environment variables
 load_dotenv()
-client = anthropic.Anthropic(
-    os.environ.get("ANTHROPIC_API_KEY")
-)
+client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 app = FastAPI()
 
