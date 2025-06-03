@@ -6,19 +6,21 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
-import openai
-from openai import OpenAI
 import io
+from dotenv import load_dotenv
+from openai import OpenAI
+
+# Load environment variables
+load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
+
+# Initialize OpenAI client
+client = OpenAI(api_key=api_key)
 
 app = FastAPI()
 
-# Hardcoded OpenAI API Key (replace with your actual key)
-client = OpenAI(api_key="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")
-
 # Mount static directory for serving charts
 app.mount("/charts", StaticFiles(directory="static/charts"), name="charts")
-
-# Ensure charts directory exists
 os.makedirs("static/charts", exist_ok=True)
 
 # Sample data
@@ -47,46 +49,45 @@ def generate_report(start_date: str, end_date: str, question: Optional[str] = "G
     if filtered.empty:
         return {"report": "No data available for the given date range."}
 
-    # Convert filtered DataFrame to CSV in memory
+    # Convert DataFrame to CSV text
     csv_buffer = io.StringIO()
     filtered.to_csv(csv_buffer, index=False)
     csv_text = csv_buffer.getvalue()
 
-    # Create prompt for OpenAI
+    # OpenAI prompt
     prompt = f"""You are a data analyst. Based on the following sales data in CSV format, answer the question below:
 
-    Question: {question}
-    Data:
-    {csv_text}
-    """
+Question: {question}
+Data:
+{csv_text}
+"""
 
-    # Ask OpenAI to generate the report
-    response = client.chat.completions.create(
-    model="gpt-4",
-    messages=[
-        {"role": "system", "content": "You are a helpful data analysis assistant."},
-        {"role": "user", "content": prompt}
-    ],
-    max_tokens=300,
-    temperature=0.3
-    )
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful data analysis assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=300,
+            temperature=0.3
+        )
+        report_text = response.choices[0].message.content
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"OpenAI error: {str(e)}"})
 
-    report_text = response.choices[0].message.content
-
-    # Generate pie chart
+    # Create chart
     summary = filtered.groupby("category")["amount"].sum().to_dict()
     fig, ax = plt.subplots()
     ax.pie(summary.values(), labels=summary.keys(), autopct='%1.1f%%')
     ax.set_title("Category Breakdown")
 
-    # Save chart to static/charts/
     filename = f"chart_{start_date}_to_{end_date}.png".replace(":", "-")
     filepath = os.path.join("static/charts", filename)
     plt.savefig(filepath, format="png")
     plt.close(fig)
 
-    # Construct chart URL
-    render_base_url = "https://copilot-vye7.onrender.com"  # Replace with your actual base URL
+    render_base_url = "https://copilot-vye7.onrender.com"  # Update as needed
     chart_url = f"{render_base_url}/charts/{filename}"
 
     return {
